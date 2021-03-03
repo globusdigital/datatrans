@@ -7,6 +7,7 @@ type ErrorResponse struct {
 	ErrorDetail    ErrorDetail `json:"error"`
 }
 
+// see https://docs.datatrans.ch/docs/error-messages
 type ErrorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`

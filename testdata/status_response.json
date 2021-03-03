@@ -1,0 +1,39 @@
+{
+  "transactionId": "210215103042148501",
+  "type": "payment",
+  "status": "authorized",
+  "currency": "CHF",
+  "refno": "0coWYw9kL",
+  "paymentMethod": "VIS",
+  "detail": {
+    "authorize": {
+      "amount": 1000,
+      "acquirerAuthorizationCode": "103042"
+    }
+  },
+  "twi": {
+    "alias": "abcdef"
+  },
+  "card": {
+    "masked": "424242xxxxxx4242",
+    "expiryMonth": "12",
+    "expiryYear": "21",
+    "info": {
+      "brand": "VISA CREDIT",
+      "type": "credit",
+      "usage": "consumer",
+      "country": "GB",
+      "issuer": "DATATRANS"
+    }
+  },
+  "history": [
+    {
+      "action": "authorize",
+      "amount": 1000,
+      "source": "api",
+      "date": "2021-02-15T09:30:42Z",
+      "success": true,
+      "ip": "77.109.165.195"
+    }
+  ]
+}
