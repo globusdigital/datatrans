@@ -13,19 +13,17 @@ https://docs.datatrans.ch/docs
 ```go
 
 	c, err := datatrans.MakeClient(
-	    datatrans.OptionHTTPRequestFn((&http.Client{
-			Timeout: 30*time.Second,
-		}).Do),
-	    datatrans.OptionMerchant{
+		datatrans.OptionMerchant{
 			InternalID: "",
-			Server:     "https://api.sandbox.datatrans.com",
+			EnableProduction: true,
+			EnableIdempotency: true,
 			MerchantID: "32234323242",
 			Password:   "dbce0e6cfc012e475c843c1bbb0ca439a048fe8e",
 		},
-	    // add more merchants if you like
-	    datatrans.OptionMerchant{
+		// add more merchants if you like
+		datatrans.OptionMerchant{
 			InternalID: "B",
-			Server:     "https://api.sandbox.datatrans.com",
+			EnableProduction: false,
 			MerchantID: "78967896789",
 			Password:   "e249002bc8e0c36dd89c393bfc7f7aa369c5842f",
 		},
@@ -62,8 +60,26 @@ How can I extend the JSON data posted to datatrans?
 	if string(data) != wantJSON {
 		t.Errorf("\nWant: %s\nHave: %s", wantJSON, data)
 	}
-
 ```
+
+### I need a custom http.Client
+
+```go
+
+	c, err := datatrans.MakeClient(
+		datatrans.OptionHTTPRequestFn((&http.Client{
+			Timeout: 30*time.Second,
+		}).Do),
+		datatrans.OptionMerchant{
+			InternalID: "",
+			EnableProduction: true,
+			EnableIdempotency: true,
+			MerchantID: "32234323242",
+			Password:   "dbce0e6cfc012e475c843c1bbb0ca439a048fe8e",
+		},
+	)
+```
+
 
 # License
 
