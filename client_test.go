@@ -93,9 +93,9 @@ func TestClient_Initialize(t *testing.T) {
 			}
 		})),
 		datatrans.OptionMerchant{
-			UseIdempotency: true,
-			MerchantID:     "322342",
-			Password:       "sfdgsdfg",
+			EnableIdempotency: true,
+			MerchantID:        "322342",
+			Password:          "sfdgsdfg",
 		},
 	)
 	must(t, err)

@@ -45,9 +45,10 @@ type OptionMerchant struct {
 	// simply retry your operation safely. Idempotency keys remain stored for 3
 	// minutes. After 3 minutes have passed, sending the same request together
 	// with the previous idempotency key will create a new operation.
-	UseIdempotency bool
-	MerchantID     string // basic auth user
-	Password       string // basic auth pw
+	EnableIdempotency  bool
+	DisableRawJSONBody bool
+	MerchantID         string // basic auth user
+	Password           string // basic auth pw
 }
 
 func (m OptionMerchant) apply(c *Client) error {
@@ -139,7 +140,7 @@ func (c *Client) do(req *http.Request, v interface{}) error {
 			ri.Location = loc
 		}
 	}
-	if set, ok := v.(rawJSONBodySetter); ok {
+	if set, ok := v.(rawJSONBodySetter); !c.merchants[internalID].DisableRawJSONBody && ok {
 		set.setJSONRawBody(buf.Bytes())
 	}
 
@@ -215,7 +216,7 @@ func (c *Client) prepareJSONReq(method, path string, postData interface{}) (*htt
 	if postData != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if method == http.MethodPost && c.merchants[internalID].UseIdempotency {
+	if method == http.MethodPost && c.merchants[internalID].EnableIdempotency {
 		// not quite happy with this
 		// https://docs.datatrans.ch/docs/api-endpoints#section-idempotency
 		fh := fnv.New64a()

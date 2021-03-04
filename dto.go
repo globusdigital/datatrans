@@ -145,18 +145,39 @@ type CardAlias struct {
 }
 
 type ResponseStatus struct {
-	TransactionID string                 `json:"transactionId,omitempty"`
-	Type          string                 `json:"type,omitempty"`
-	Status        string                 `json:"status,omitempty"`
-	Currency      string                 `json:"currency,omitempty"`
-	RefNo         string                 `json:"refno,omitempty"`
-	PaymentMethod string                 `json:"paymentMethod,omitempty"`
-	Detail        map[string]interface{} `json:"detail,omitempty"`
-	Customer      *Customer              `json:"customer,omitempty"`
-	Card          *CardExtended          `json:"card,omitempty"`
-	Language      string                 `json:"language,omitempty"`
-	History       []History              `json:"history,omitempty"`
-	RawJSONBody   `json:"raw,omitempty"`
+	TransactionID string `json:"transactionId,omitempty"`
+	Type          string `json:"type,omitempty"`
+	Status        string `json:"status,omitempty"`
+	Currency      string `json:"currency,omitempty"`
+	RefNo         string `json:"refno,omitempty"`
+	PaymentMethod string `json:"paymentMethod,omitempty"`
+	Detail        struct {
+		Init struct {
+			Expires time.Time `json:"expires,omitempty"` // Tells when the initialized transaction will expire if not continued - 30 minutes after initialization.
+		} `json:"init,omitempty"`
+		Authorize struct {
+			Amount                    int    `json:"amount,omitempty"`
+			AcquirerAuthorizationCode string `json:"acquirerAuthorizationCode,omitempty"`
+		} `json:"authorize,omitempty"`
+		Settle struct {
+			Amount int `json:"amount,omitempty"`
+		} `json:"settle,omitempty"`
+		Credit struct {
+			Amount int `json:"amount,omitempty"`
+		} `json:"credit,omitempty"`
+		Cancel struct {
+			Reversal bool `json:"reversal,omitempty"` // Whether the transaction was reversed on acquirer side.
+		} `json:"cancel,omitempty"`
+		Fail struct {
+			Reason  string `json:"reason,omitempty"`
+			Message string `json:"message,omitempty"`
+		} `json:"fail,omitempty"`
+	} `json:"detail,omitempty"`
+	Customer    *Customer     `json:"customer,omitempty"`
+	Card        *CardExtended `json:"card,omitempty"`
+	Language    string        `json:"language,omitempty"`
+	History     []History     `json:"history,omitempty"`
+	RawJSONBody `json:"raw,omitempty"`
 }
 
 type CardExtended struct {
