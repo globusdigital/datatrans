@@ -2,6 +2,7 @@ package datatrans_test
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -50,7 +51,6 @@ func TestClient_Status(t *testing.T) {
 	c, err := datatrans.MakeClient(
 		datatrans.OptionHTTPRequestFn(mockResponse(t, 200, "testdata/status_response.json", nil)),
 		datatrans.OptionMerchant{
-			Server:     "http://localhost",
 			MerchantID: "322342",
 			Password:   "32168",
 		},
@@ -73,6 +73,9 @@ func TestClient_Initialize(t *testing.T) {
 			if req.Header.Get("Content-Type") != "application/json" {
 				t.Error("invalid content type")
 			}
+			if k := req.Header.Get("Idempotency-Key"); k != "c0476553a7e7da70" {
+				t.Errorf("invalid Idempotency-Key: %q", k)
+			}
 
 			u, p, _ := req.BasicAuth()
 			if u != "322342" {
@@ -90,9 +93,9 @@ func TestClient_Initialize(t *testing.T) {
 			}
 		})),
 		datatrans.OptionMerchant{
-			Server:     "http://localhost",
-			MerchantID: "322342",
-			Password:   "sfdgsdfg",
+			UseIdempotency: true,
+			MerchantID:     "322342",
+			Password:       "sfdgsdfg",
 		},
 	)
 	must(t, err)
@@ -139,5 +142,39 @@ func TestMarshalJSON(t *testing.T) {
 	const wantJSON = `{"amount":123,"autoSettle":true,"currency":"CHF","language":"DE","refno":"234234","twi":{"alias":"ZGZhc2RmYXNkZmFzZGZhc2Q="}}`
 	if string(data) != wantJSON {
 		t.Errorf("\nWant: %s\nHave: %s", wantJSON, data)
+	}
+}
+
+func TestClient_AliasDelete_Error(t *testing.T) {
+	c, err := datatrans.MakeClient(
+		datatrans.OptionHTTPRequestFn(mockResponse(t, 400, `{"error": {"code": "ALIAS_NOT_FOUND"}}`, func(t *testing.T, req *http.Request) {
+			if req.Method != http.MethodDelete {
+				t.Error("not a delete request")
+			}
+			if req.Header.Get("Content-Type") == "application/json" {
+				t.Error("invalid content type")
+			}
+
+			u, p, _ := req.BasicAuth()
+			if u != "322342" {
+				t.Error("invalid basic username")
+			}
+			if p != "sfdgsdfg" {
+				t.Error("invalid basic password")
+			}
+		})),
+		datatrans.OptionMerchant{
+			MerchantID: "322342",
+			Password:   "sfdgsdfg",
+		},
+	)
+	must(t, err)
+
+	err = c.AliasDelete("3469efdbbdcb043e56b19ffca69a8be0c5524d89")
+
+	var detailErr datatrans.ErrorResponse
+	errors.As(err, &detailErr)
+	if !reflect.DeepEqual(detailErr, datatrans.ErrorResponse{HTTPStatusCode: 400, ErrorDetail: datatrans.ErrorDetail{Code: "ALIAS_NOT_FOUND", Message: ""}}) {
+		t.Error("errors not equal")
 	}
 }

@@ -20,8 +20,8 @@ var (
 
 // https://api-reference.datatrans.ch/#section/Webhook/Webhook-signing
 type WebhookOption struct {
-	Sign2HMACKey string
-	ErrorHandler func(error) http.Handler
+	Sign2HMACKey string                   // hex encoded
+	ErrorHandler func(error) http.Handler // optional custom error handler
 }
 
 // ValidateWebhook an HTTP middleware which checks that the signature in the header is valid.
@@ -55,13 +55,13 @@ func ValidateWebhook(wo WebhookOption) (func(next http.Handler) http.Handler, er
 			var buf bytes.Buffer
 			if _, err := io.Copy(io.MultiWriter(&buf, hmv), r.Body); err != nil {
 				_ = r.Body.Close()
-				wo.ErrorHandler(errors.New("ValidateWebhook: copy failed")).ServeHTTP(w, r)
+				wo.ErrorHandler(err).ServeHTTP(w, r)
 				return
 			}
 			_ = r.Body.Close()
 			r.Body = ioutil.NopCloser(&buf)
 
-			if !hmac.Equal(hmv.Sum(nil), []byte(s0)) {
+			if !hmac.Equal(hmv.Sum(nil), s0) {
 				wo.ErrorHandler(ErrWebhookMismatchSignature).ServeHTTP(w, r)
 				return
 			}

@@ -28,9 +28,19 @@ func (b *RawJSONBody) setJSONRawBody(p []byte) {
 	*b = p
 }
 
-type ResponseAuthorize struct {
-	AcquirerAuthorizationCode string `json:"acquirerAuthorizationCode"`
-	RawJSONBody               `json:"raw,omitempty"`
+// https://api-reference.datatrans.ch/#operation/secureFieldsInit
+type RequestSecureFieldsInit struct {
+	Currency     string `json:"currency"`
+	Amount       int    `json:"amount,omitempty"`
+	ReturnUrl    string `json:"returnUrl"`
+	CustomFields `json:"-"`
+}
+
+// https://api-reference.datatrans.ch/#operation/secure-fields-update
+type RequestSecureFieldsUpdate struct {
+	Currency     string `json:"currency"`
+	Amount       int    `json:"amount,omitempty"`
+	CustomFields `json:"-"`
 }
 
 // https://api-reference.datatrans.ch/#operation/init
@@ -67,6 +77,11 @@ type RequestAuthorize struct {
 	// card alias.
 	Card         *CardAlias `json:"card,omitempty"`
 	CustomFields `json:"-"`
+}
+
+type ResponseAuthorize struct {
+	AcquirerAuthorizationCode string `json:"acquirerAuthorizationCode"`
+	RawJSONBody               `json:"raw,omitempty"`
 }
 
 type RequestAuthorizeTransaction struct {
@@ -196,6 +211,7 @@ type Customer struct {
 
 type Theme struct {
 	// 	Theme configuration options when using the default DT2015 theme
+	Name          string             `json:"name,omitempty"` // Theme name, e.g. DT2015
 	Configuration ThemeConfiguration `json:"configuration,omitempty"`
 }
 
@@ -243,4 +259,28 @@ type InitializeOption struct {
 	AuthenticationOnly     bool   `json:"authenticationOnly"`     // Whether to only authenticate the transaction (3D process only). If set to true, the actual authorization will not take place.
 	RememberMe             string `json:"rememberMe"`             // Enum: "true" "checked"	Whether to show a checkbox on the payment page to let the customer choose if they want to save their card information.
 	ReturnMobileToken      bool   `json:"returnMobileToken"`      // Indicates that a mobile token should be created. This is needed when using our Mobile SDKs.
+}
+
+type RequestReconciliationsSale struct {
+	Date          time.Time `json:"date"`
+	TransactionID string    `json:"transactionId"`
+	Currency      string    `json:"currency"`
+	Amount        int       `json:"amount"`
+	Type          string    `json:"type"`
+	Refno         string    `json:"refno"`
+}
+
+type ResponseReconciliationsSale struct {
+	TransactionID string    `json:"transactionId"`
+	SaleDate      time.Time `json:"saleDate"`
+	ReportedDate  time.Time `json:"reportedDate"`
+	MatchResult   string    `json:"matchResult"`
+}
+
+type RequestReconciliationsSales struct {
+	Sales []RequestReconciliationsSale `json:"sales"`
+}
+
+type ResponseReconciliationsSales struct {
+	Sales []ResponseReconciliationsSale `json:"sales"`
 }

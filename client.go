@@ -2,31 +2,52 @@ package datatrans
 
 import (
 	"bytes"
+	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
+// https://docs.datatrans.ch/docs/api-endpoints
 const (
-	pathBase                 = "/v1/transactions"
-	pathStatus               = pathBase + "/%s"
-	pathCredit               = pathBase + "/%s/credit"
-	pathCreditAuthorize      = pathBase + "/credit"
-	pathCancel               = pathBase + "/%s/cancel"
-	pathSettle               = pathBase + "/%s/settle"
-	pathValidate             = pathBase + "/validate"
-	pathAuthorizeTransaction = pathBase + "/%s/authorize"
-	pathAuthorize            = pathBase + "/authorize"
-	pathInitialize           = pathBase
+	endpointURLSandBox    = `https://api.sandbox.datatrans.com`
+	endpointURLProduction = `https://api.datatrans.com`
+
+	pathBase                     = "/v1/transactions"
+	pathStatus                   = pathBase + "/%s"
+	pathCredit                   = pathBase + "/%s/credit"
+	pathCreditAuthorize          = pathBase + "/credit"
+	pathCancel                   = pathBase + "/%s/cancel"
+	pathSettle                   = pathBase + "/%s/settle"
+	pathValidate                 = pathBase + "/validate"
+	pathAuthorizeTransaction     = pathBase + "/%s/authorize"
+	pathAuthorize                = pathBase + "/authorize"
+	pathInitialize               = pathBase
+	pathSecureFields             = pathBase + "/secureFields"
+	pathSecureFieldsUpdate       = pathBase + "/secureFields/%s"
+	pathAliases                  = pathBase + "/aliases"
+	pathAliasesDelete            = pathBase + "/aliases/%s"
+	pathReconciliationsSales     = "/v1/reconciliations/sales"
+	pathReconciliationsSalesBulk = "/v1/reconciliations/sales/bulk"
 )
 
 type OptionMerchant struct {
-	InternalID string
-	Server     string
-	MerchantID string // basic auth user
-	Password   string // basic auth pw
+	InternalID       string
+	EnableProduction bool
+	// https://docs.datatrans.ch/docs/api-endpoints#section-idempotency
+	// If your request failed to reach our servers, no idempotent result is saved
+	// because no API endpoint processed your request. In such cases, you can
+	// simply retry your operation safely. Idempotency keys remain stored for 3
+	// minutes. After 3 minutes have passed, sending the same request together
+	// with the previous idempotency key will create a new operation.
+	UseIdempotency bool
+	MerchantID     string // basic auth user
+	Password       string // basic auth pw
 }
 
 func (m OptionMerchant) apply(c *Client) error {
@@ -45,10 +66,9 @@ func (fn OptionHTTPRequestFn) apply(c *Client) error {
 }
 
 type Client struct {
-	copyRawResponseBody bool
-	doFn                OptionHTTPRequestFn
-	merchants           map[string]OptionMerchant // string = your custom merchant ID
-	currentInternalID   string
+	doFn              OptionHTTPRequestFn
+	merchants         map[string]OptionMerchant // string = your custom merchant ID
+	currentInternalID string
 }
 
 type Option interface {
@@ -66,6 +86,16 @@ func MakeClient(opts ...Option) (Client, error) {
 	}
 	if len(c.merchants) == 0 {
 		return Client{}, fmt.Errorf("no merchants applied")
+	}
+	if c.doFn == nil {
+		c.doFn = (&http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+				},
+			},
+		}).Do
 	}
 
 	return c, nil
@@ -160,19 +190,39 @@ func MarshalJSON(postData interface{}) ([]byte, error) {
 	return jsonBytes, nil
 }
 
-func (c *Client) preparePostJSONReq(path string, postData interface{}) (*http.Request, error) {
+func (c *Client) prepareJSONReq(method, path string, postData interface{}) (*http.Request, error) {
 	internalID := c.currentInternalID
 
-	jsonBytes, err := MarshalJSON(postData)
-	if err != nil {
-		return nil, fmt.Errorf("ClientID:%q: failed to json marshal HTTP request: %w", internalID, err)
+	var r io.Reader
+	var jsonBytes []byte
+	if postData != nil {
+		var err error
+		jsonBytes, err = MarshalJSON(postData)
+		if err != nil {
+			return nil, fmt.Errorf("ClientID:%q: failed to json marshal HTTP request: %w", internalID, err)
+		}
+		r = bytes.NewReader(jsonBytes)
+	}
+	host := endpointURLSandBox
+	if c.merchants[internalID].EnableProduction {
+		host = endpointURLProduction
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.merchants[internalID].Server+path, bytes.NewReader(jsonBytes))
+	req, err := http.NewRequest(method, host+path, r)
 	if err != nil {
 		return nil, fmt.Errorf("ClientID:%q: failed to create HTTP request: %w", internalID, err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	if postData != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if method == http.MethodPost && c.merchants[internalID].UseIdempotency {
+		// not quite happy with this
+		// https://docs.datatrans.ch/docs/api-endpoints#section-idempotency
+		fh := fnv.New64a()
+		_, _ = fh.Write([]byte(internalID + host + path))
+		_, _ = fh.Write(jsonBytes)
+		req.Header.Set("Idempotency-Key", hex.EncodeToString(fh.Sum(nil)))
+	}
 
 	return req, nil
 }
@@ -184,7 +234,11 @@ func (c *Client) Status(transactionID string) (*ResponseStatus, error) {
 		return nil, fmt.Errorf("transactionID cannot be empty")
 	}
 	internalID := c.currentInternalID
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(c.merchants[internalID].Server+pathStatus, transactionID), nil)
+	host := endpointURLSandBox
+	if c.merchants[internalID].EnableProduction {
+		host = endpointURLProduction
+	}
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(host+pathStatus, transactionID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("ClientID:%q: failed to create HTTP request: %w", internalID, err)
 	}
@@ -204,7 +258,7 @@ func (c *Client) Credit(transactionID string, rc RequestCredit) (*ResponseCardMa
 		return nil, fmt.Errorf("neither currency nor refno nor transactionID can be empty")
 	}
 
-	req, err := c.preparePostJSONReq(fmt.Sprintf(pathCredit, transactionID), rc)
+	req, err := c.prepareJSONReq(http.MethodPost, fmt.Sprintf(pathCredit, transactionID), rc)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +279,7 @@ func (c *Client) CreditAuthorize(rca RequestCreditAuthorize) (*ResponseCardMaske
 		return nil, fmt.Errorf("neither currency nor refno nor amount can be empty")
 	}
 
-	req, err := c.preparePostJSONReq(pathCreditAuthorize, rca)
+	req, err := c.prepareJSONReq(http.MethodPost, pathCreditAuthorize, rca)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +299,7 @@ func (c *Client) Cancel(transactionID string, refno string) error {
 	if transactionID == "" || refno == "" {
 		return fmt.Errorf("neither transactionID nor refno can be empty")
 	}
-	req, err := c.preparePostJSONReq(fmt.Sprintf(pathCancel, transactionID), struct {
+	req, err := c.prepareJSONReq(http.MethodPost, fmt.Sprintf(pathCancel, transactionID), struct {
 		Refno string `json:"refno"`
 	}{
 		Refno: refno,
@@ -269,7 +323,7 @@ func (c *Client) Settle(transactionID string, rs RequestSettle) error {
 	if transactionID == "" || rs.Amount == 0 || rs.Currency == "" || rs.RefNo == "" {
 		return fmt.Errorf("neither transactionID nor refno nor amount nor currency can be empty")
 	}
-	req, err := c.preparePostJSONReq(fmt.Sprintf(pathSettle, transactionID), rs)
+	req, err := c.prepareJSONReq(http.MethodPost, fmt.Sprintf(pathSettle, transactionID), rs)
 	if err != nil {
 		return err
 	}
@@ -289,7 +343,7 @@ func (c *Client) ValidateAlias(rva RequestValidateAlias) (*ResponseCardMasked, e
 	if rva.Currency == "" || rva.RefNo == "" {
 		return nil, fmt.Errorf("neither currency nor refno can be empty")
 	}
-	req, err := c.preparePostJSONReq(pathValidate, rva)
+	req, err := c.prepareJSONReq(http.MethodPost, pathValidate, rva)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +363,7 @@ func (c *Client) AuthorizeTransaction(transactionID string, rva RequestAuthorize
 	if transactionID == "" || rva.RefNo == "" {
 		return nil, fmt.Errorf("neither transactionID nor refno can be empty")
 	}
-	req, err := c.preparePostJSONReq(fmt.Sprintf(pathAuthorizeTransaction, transactionID), rva)
+	req, err := c.prepareJSONReq(http.MethodPost, fmt.Sprintf(pathAuthorizeTransaction, transactionID), rva)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +385,7 @@ func (c *Client) Authorize(rva RequestAuthorize) (*ResponseCardMasked, error) {
 	if rva.Amount == 0 || rva.Currency == "" || rva.RefNo == "" {
 		return nil, fmt.Errorf("neither transactionID nor amount nor currency nor refno can be empty")
 	}
-	req, err := c.preparePostJSONReq(pathAuthorize, rva)
+	req, err := c.prepareJSONReq(http.MethodPost, pathAuthorize, rva)
 	if err != nil {
 		return nil, err
 	}
@@ -354,9 +408,9 @@ func (c *Client) Authorize(rva RequestAuthorize) (*ResponseCardMasked, error) {
 // paymentMethod array can be used.
 func (c *Client) Initialize(rva RequestInitialize) (*ResponseInitialize, error) {
 	if rva.Amount == 0 || rva.Currency == "" || rva.RefNo == "" {
-		return nil, fmt.Errorf("neither transactionID nor amount nor currency nor refno can be empty")
+		return nil, fmt.Errorf("neither amount nor currency nor refno can be empty")
 	}
-	req, err := c.preparePostJSONReq(pathInitialize, rva)
+	req, err := c.prepareJSONReq(http.MethodPost, pathInitialize, rva)
 	if err != nil {
 		return nil, err
 	}
@@ -366,4 +420,110 @@ func (c *Client) Initialize(rva RequestInitialize) (*ResponseInitialize, error) 
 		return nil, fmt.Errorf("ClientID:%q: failed to execute HTTP request: %w", c.currentInternalID, err)
 	}
 	return &ri, nil
+}
+
+// InitializeSecureFields initializes a Secure Fields transaction. Proceed with
+// the steps below to process Secure Fields payment transactions.
+// https://api-reference.datatrans.ch/#operation/secureFieldsInit
+func (c *Client) SecureFieldsInit(rva RequestSecureFieldsInit) (*ResponseInitialize, error) {
+	if rva.Amount == 0 || rva.Currency == "" || rva.ReturnUrl == "" {
+		return nil, fmt.Errorf("neither amount nor currency nor returnURL can be empty")
+	}
+	req, err := c.prepareJSONReq(http.MethodPost, pathSecureFields, rva)
+	if err != nil {
+		return nil, err
+	}
+
+	var ri ResponseInitialize
+	if err := c.do(req, &ri); err != nil {
+		return nil, fmt.Errorf("ClientID:%q: failed to execute HTTP request: %w", c.currentInternalID, err)
+	}
+	return &ri, nil
+}
+
+// SecureFieldsUpdate use this API to update the amount of a Secure Fields
+// transaction. This action is only allowed before the 3D process. At least one
+// property must be updated.
+// https://api-reference.datatrans.ch/#operation/secure-fields-update
+func (c *Client) SecureFieldsUpdate(transactionID string, rva RequestSecureFieldsUpdate) error {
+	if rva.Amount == 0 || rva.Currency == "" {
+		return fmt.Errorf("neither amount nor currency nor returnURL can be empty")
+	}
+	req, err := c.prepareJSONReq(http.MethodPatch, fmt.Sprintf(pathSecureFieldsUpdate, transactionID), rva)
+	if err != nil {
+		return err
+	}
+
+	if err := c.do(req, nil); err != nil {
+		return fmt.Errorf("ClientID:%q: failed to execute HTTP request: %w", c.currentInternalID, err)
+	}
+	return nil
+}
+
+// AliasConvert converts a legacy (numeric or masked) alias to the most recent
+// alias format.
+func (c *Client) AliasConvert(legacyAlias string) (string, error) {
+	if legacyAlias == "" {
+		return "", fmt.Errorf("legacyAlias cannot be empty")
+	}
+	req, err := c.prepareJSONReq(http.MethodPost, pathAliases, struct {
+		LegacyAlias string `json:"legacyAlias"`
+	}{
+		LegacyAlias: legacyAlias,
+	})
+	if err != nil {
+		return "", err
+	}
+	var resp struct {
+		Alias string `json:"alias"`
+	}
+	if err := c.do(req, &resp); err != nil {
+		return "", fmt.Errorf("ClientID:%q: failed to execute HTTP request: %w", c.currentInternalID, err)
+	}
+	return resp.Alias, nil
+}
+
+// AliasDelete deletes an alias with immediate effect. The alias will no longer
+// be recognized if used later with any API call.
+func (c *Client) AliasDelete(alias string) error {
+	if alias == "" {
+		return fmt.Errorf("alias cannot be empty")
+	}
+	req, err := c.prepareJSONReq(http.MethodDelete, fmt.Sprintf(pathAliasesDelete, alias), nil)
+	if err != nil {
+		return err
+	}
+	if err := c.do(req, nil); err != nil {
+		return fmt.Errorf("ClientID:%q: failed to execute HTTP request: %w", c.currentInternalID, err)
+	}
+	return nil
+}
+
+// ReconciliationsSales reports a sale. When using reconciliation, use this API
+// to report a sale. The matching is based on the transactionId.
+func (c *Client) ReconciliationsSales(sale RequestReconciliationsSale) (*ResponseReconciliationsSale, error) {
+	req, err := c.prepareJSONReq(http.MethodPost, pathReconciliationsSales, sale)
+	if err != nil {
+		return nil, err
+	}
+	var rrs ResponseReconciliationsSale
+	if err := c.do(req, &rrs); err != nil {
+		return nil, fmt.Errorf("ClientID:%q: failed to execute HTTP request: %w", c.currentInternalID, err)
+	}
+	return &rrs, nil
+}
+
+// ReconciliationsSalesBulk reports bulk sales. When using reconciliation, use
+// this API to report multiples sales with a single API call. The matching is
+// based on the transactionId.
+func (c *Client) ReconciliationsSalesBulk(sales RequestReconciliationsSales) (*ResponseReconciliationsSales, error) {
+	req, err := c.prepareJSONReq(http.MethodPost, pathReconciliationsSalesBulk, sales)
+	if err != nil {
+		return nil, err
+	}
+	var rrs ResponseReconciliationsSales
+	if err := c.do(req, &rrs); err != nil {
+		return nil, fmt.Errorf("ClientID:%q: failed to execute HTTP request: %w", c.currentInternalID, err)
+	}
+	return &rrs, nil
 }
