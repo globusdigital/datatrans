@@ -101,7 +101,7 @@ func TestClient_Initialize(t *testing.T) {
 	)
 	must(t, err)
 
-	rs, err := c.Initialize(context.Background(), datatrans.RequestInitialize{
+	ri := datatrans.RequestInitialize{
 		Currency:       "CHF",
 		RefNo:          "872732",
 		Amount:         1337,
@@ -115,13 +115,27 @@ func TestClient_Initialize(t *testing.T) {
 		CustomFields: map[string]interface{}{
 			"alp": true,
 		},
-	})
-	must(t, err)
-
-	want := &datatrans.ResponseInitialize{TransactionId: "210215103033478409", RawJSONBody: datatrans.RawJSONBody{0x7b, 0x22, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x49, 0x64, 0x22, 0x3a, 0x20, 0x22, 0x32, 0x31, 0x30, 0x32, 0x31, 0x35, 0x31, 0x30, 0x33, 0x30, 0x33, 0x33, 0x34, 0x37, 0x38, 0x34, 0x30, 0x39, 0x22, 0x7d}}
-	if !reflect.DeepEqual(rs, want) {
-		t.Error("invalid response")
 	}
+	t.Run("successful request", func(t *testing.T) {
+		rs, err := c.Initialize(context.Background(), ri)
+		must(t, err)
+
+		want := &datatrans.ResponseInitialize{TransactionId: "210215103033478409", RawJSONBody: datatrans.RawJSONBody{0x7b, 0x22, 0x74, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x49, 0x64, 0x22, 0x3a, 0x20, 0x22, 0x32, 0x31, 0x30, 0x32, 0x31, 0x35, 0x31, 0x30, 0x33, 0x30, 0x33, 0x33, 0x34, 0x37, 0x38, 0x34, 0x30, 0x39, 0x22, 0x7d}}
+		if !reflect.DeepEqual(rs, want) {
+			t.Error("invalid response")
+		}
+	})
+
+	t.Run("invalid merchant", func(t *testing.T) {
+		rs, err := c.WithMerchant("sadfasdf").Initialize(context.Background(), ri)
+		if rs != nil {
+			t.Error("response should be nil")
+		}
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+		t.Log(err)
+	})
 }
 
 func TestMarshalJSON(t *testing.T) {

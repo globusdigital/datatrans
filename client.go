@@ -71,6 +71,7 @@ type Client struct {
 	doFn              OptionHTTPRequestFn
 	merchants         map[string]OptionMerchant // string = your custom merchant ID
 	currentInternalID string
+	internalIDFound   bool
 }
 
 type Option interface {
@@ -99,7 +100,8 @@ func MakeClient(opts ...Option) (Client, error) {
 			},
 		}).Do
 	}
-
+	// see if we have a default one, otherwise you always have to call WithMerchant.
+	_, c.internalIDFound = c.merchants[""]
 	return c, nil
 }
 
@@ -107,11 +109,16 @@ func MakeClient(opts ...Option) (Client, error) {
 func (c *Client) WithMerchant(internalID string) *Client {
 	c2 := *c
 	c2.currentInternalID = internalID
+	_, c2.internalIDFound = c2.merchants[internalID]
 	return &c2
 }
 
 func (c *Client) do(req *http.Request, v interface{}) error {
 	internalID := c.currentInternalID
+	if !c.internalIDFound {
+		return fmt.Errorf("ClientID %q not found in list of merchants", internalID)
+	}
+
 	req.SetBasicAuth(c.merchants[internalID].MerchantID, c.merchants[internalID].Password)
 	resp, err := c.doFn(req)
 	defer closeResponse(resp)
