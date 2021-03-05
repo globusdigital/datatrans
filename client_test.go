@@ -2,6 +2,7 @@ package datatrans_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -57,7 +58,7 @@ func TestClient_Status(t *testing.T) {
 	)
 	must(t, err)
 
-	rs, err := c.Status("3423423423")
+	rs, err := c.Status(context.Background(), "3423423423")
 	must(t, err)
 	if rs.TransactionID != "210215103042148501" {
 		t.Errorf("incorrect TransactionID:%q", rs.TransactionID)
@@ -100,7 +101,7 @@ func TestClient_Initialize(t *testing.T) {
 	)
 	must(t, err)
 
-	rs, err := c.Initialize(datatrans.RequestInitialize{
+	rs, err := c.Initialize(context.Background(), datatrans.RequestInitialize{
 		Currency:       "CHF",
 		RefNo:          "872732",
 		Amount:         1337,
@@ -170,7 +171,7 @@ func TestClient_AliasDelete_Error(t *testing.T) {
 	)
 	must(t, err)
 
-	err = c.AliasDelete("3469efdbbdcb043e56b19ffca69a8be0c5524d89")
+	err = c.AliasDelete(context.Background(), "3469efdbbdcb043e56b19ffca69a8be0c5524d89")
 
 	var detailErr datatrans.ErrorResponse
 	errors.As(err, &detailErr)

@@ -2,6 +2,7 @@ package datatrans
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
@@ -191,7 +192,7 @@ func MarshalJSON(postData interface{}) ([]byte, error) {
 	return jsonBytes, nil
 }
 
-func (c *Client) prepareJSONReq(method, path string, postData interface{}) (*http.Request, error) {
+func (c *Client) prepareJSONReq(ctx context.Context, method, path string, postData interface{}) (*http.Request, error) {
 	internalID := c.currentInternalID
 
 	var r io.Reader
@@ -209,7 +210,7 @@ func (c *Client) prepareJSONReq(method, path string, postData interface{}) (*htt
 		host = endpointURLProduction
 	}
 
-	req, err := http.NewRequest(method, host+path, r)
+	req, err := http.NewRequestWithContext(ctx, method, host+path, r)
 	if err != nil {
 		return nil, fmt.Errorf("ClientID:%q: failed to create HTTP request: %w", internalID, err)
 	}
@@ -230,7 +231,7 @@ func (c *Client) prepareJSONReq(method, path string, postData interface{}) (*htt
 
 // Status allows once a transactionId has been received the status can be checked
 // with the Status API.
-func (c *Client) Status(transactionID string) (*ResponseStatus, error) {
+func (c *Client) Status(ctx context.Context, transactionID string) (*ResponseStatus, error) {
 	if transactionID == "" {
 		return nil, fmt.Errorf("transactionID cannot be empty")
 	}
@@ -239,7 +240,7 @@ func (c *Client) Status(transactionID string) (*ResponseStatus, error) {
 	if c.merchants[internalID].EnableProduction {
 		host = endpointURLProduction
 	}
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(host+pathStatus, transactionID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(host+pathStatus, transactionID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("ClientID:%q: failed to create HTTP request: %w", internalID, err)
 	}
@@ -254,12 +255,12 @@ func (c *Client) Status(transactionID string) (*ResponseStatus, error) {
 
 // Credit uses the credit API to credit a transaction which is in status settled.
 // The previously settled amount must not be exceeded.
-func (c *Client) Credit(transactionID string, rc RequestCredit) (*ResponseCardMasked, error) {
+func (c *Client) Credit(ctx context.Context, transactionID string, rc RequestCredit) (*ResponseCardMasked, error) {
 	if transactionID == "" || rc.Currency == "" || rc.RefNo == "" {
 		return nil, fmt.Errorf("neither currency nor refno nor transactionID can be empty")
 	}
 
-	req, err := c.prepareJSONReq(http.MethodPost, fmt.Sprintf(pathCredit, transactionID), rc)
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, fmt.Sprintf(pathCredit, transactionID), rc)
 	if err != nil {
 		return nil, err
 	}
@@ -275,12 +276,12 @@ func (c *Client) Credit(transactionID string, rc RequestCredit) (*ResponseCardMa
 // CreditAuthorize allows to use this API to make a credit without referring to a
 // previous authorization. This can be useful if you want to credit a cardholder
 // when there was no debit.
-func (c *Client) CreditAuthorize(rca RequestCreditAuthorize) (*ResponseCardMasked, error) {
+func (c *Client) CreditAuthorize(ctx context.Context, rca RequestCreditAuthorize) (*ResponseCardMasked, error) {
 	if rca.Currency == "" || rca.RefNo == "" || rca.Amount == 0 {
 		return nil, fmt.Errorf("neither currency nor refno nor amount can be empty")
 	}
 
-	req, err := c.prepareJSONReq(http.MethodPost, pathCreditAuthorize, rca)
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, pathCreditAuthorize, rca)
 	if err != nil {
 		return nil, err
 	}
@@ -296,11 +297,11 @@ func (c *Client) CreditAuthorize(rca RequestCreditAuthorize) (*ResponseCardMaske
 // The transaction must either be in status authorized or settled. The
 // transactionId is needed to cancel an authorization.
 // https://api-reference.datatrans.ch/#operation/cancel
-func (c *Client) Cancel(transactionID string, refno string) error {
+func (c *Client) Cancel(ctx context.Context, transactionID string, refno string) error {
 	if transactionID == "" || refno == "" {
 		return fmt.Errorf("neither transactionID nor refno can be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPost, fmt.Sprintf(pathCancel, transactionID), struct {
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, fmt.Sprintf(pathCancel, transactionID), struct {
 		Refno string `json:"refno"`
 	}{
 		Refno: refno,
@@ -320,11 +321,11 @@ func (c *Client) Cancel(transactionID string, refno string) error {
 // transactionId is needed to settle an authorization. Note: This API call is not
 // needed if "autoSettle": true was used when initializing a transaction.
 // https://api-reference.datatrans.ch/#operation/settle
-func (c *Client) Settle(transactionID string, rs RequestSettle) error {
+func (c *Client) Settle(ctx context.Context, transactionID string, rs RequestSettle) error {
 	if transactionID == "" || rs.Amount == 0 || rs.Currency == "" || rs.RefNo == "" {
 		return fmt.Errorf("neither transactionID nor refno nor amount nor currency can be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPost, fmt.Sprintf(pathSettle, transactionID), rs)
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, fmt.Sprintf(pathSettle, transactionID), rs)
 	if err != nil {
 		return err
 	}
@@ -340,11 +341,11 @@ func (c *Client) Settle(transactionID string, rs RequestSettle) error {
 // Only credit cards (including Apple Pay and Google Pay), PFC, KLN and PAP
 // support validation of an existing alias.
 // https://api-reference.datatrans.ch/#operation/validate
-func (c *Client) ValidateAlias(rva RequestValidateAlias) (*ResponseCardMasked, error) {
+func (c *Client) ValidateAlias(ctx context.Context, rva RequestValidateAlias) (*ResponseCardMasked, error) {
 	if rva.Currency == "" || rva.RefNo == "" {
 		return nil, fmt.Errorf("neither currency nor refno can be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPost, pathValidate, rva)
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, pathValidate, rva)
 	if err != nil {
 		return nil, err
 	}
@@ -360,11 +361,11 @@ func (c *Client) ValidateAlias(rva RequestValidateAlias) (*ResponseCardMasked, e
 // transaction the parameter option.authenticationOnly was set to true, this API
 // can be used to authorize an already authenticated (3D) transaction.
 // https://api-reference.datatrans.ch/#operation/authorize-split
-func (c *Client) AuthorizeTransaction(transactionID string, rva RequestAuthorizeTransaction) (*ResponseAuthorize, error) {
+func (c *Client) AuthorizeTransaction(ctx context.Context, transactionID string, rva RequestAuthorizeTransaction) (*ResponseAuthorize, error) {
 	if transactionID == "" || rva.RefNo == "" {
 		return nil, fmt.Errorf("neither transactionID nor refno can be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPost, fmt.Sprintf(pathAuthorizeTransaction, transactionID), rva)
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, fmt.Sprintf(pathAuthorizeTransaction, transactionID), rva)
 	if err != nil {
 		return nil, err
 	}
@@ -382,11 +383,11 @@ func (c *Client) AuthorizeTransaction(transactionID string, rva RequestAuthorize
 // the payment method specific objects (for example PAP) to see which parameters
 // so send. For credit cards, the card object can be used.
 // https://api-reference.datatrans.ch/#operation/authorize
-func (c *Client) Authorize(rva RequestAuthorize) (*ResponseCardMasked, error) {
+func (c *Client) Authorize(ctx context.Context, rva RequestAuthorize) (*ResponseCardMasked, error) {
 	if rva.Amount == 0 || rva.Currency == "" || rva.RefNo == "" {
 		return nil, fmt.Errorf("neither transactionID nor amount nor currency nor refno can be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPost, pathAuthorize, rva)
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, pathAuthorize, rva)
 	if err != nil {
 		return nil, err
 	}
@@ -407,11 +408,11 @@ func (c *Client) Authorize(rva RequestAuthorize) (*ResponseCardMasked, error) {
 // Datatrans Payment Page with all the payment methods available for the given
 // merchantId. If you want to limit the number of payment methods, the
 // paymentMethod array can be used.
-func (c *Client) Initialize(rva RequestInitialize) (*ResponseInitialize, error) {
+func (c *Client) Initialize(ctx context.Context, rva RequestInitialize) (*ResponseInitialize, error) {
 	if rva.Amount == 0 || rva.Currency == "" || rva.RefNo == "" {
 		return nil, fmt.Errorf("neither amount nor currency nor refno can be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPost, pathInitialize, rva)
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, pathInitialize, rva)
 	if err != nil {
 		return nil, err
 	}
@@ -426,11 +427,11 @@ func (c *Client) Initialize(rva RequestInitialize) (*ResponseInitialize, error) 
 // InitializeSecureFields initializes a Secure Fields transaction. Proceed with
 // the steps below to process Secure Fields payment transactions.
 // https://api-reference.datatrans.ch/#operation/secureFieldsInit
-func (c *Client) SecureFieldsInit(rva RequestSecureFieldsInit) (*ResponseInitialize, error) {
+func (c *Client) SecureFieldsInit(ctx context.Context, rva RequestSecureFieldsInit) (*ResponseInitialize, error) {
 	if rva.Amount == 0 || rva.Currency == "" || rva.ReturnUrl == "" {
 		return nil, fmt.Errorf("neither amount nor currency nor returnURL can be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPost, pathSecureFields, rva)
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, pathSecureFields, rva)
 	if err != nil {
 		return nil, err
 	}
@@ -446,11 +447,11 @@ func (c *Client) SecureFieldsInit(rva RequestSecureFieldsInit) (*ResponseInitial
 // transaction. This action is only allowed before the 3D process. At least one
 // property must be updated.
 // https://api-reference.datatrans.ch/#operation/secure-fields-update
-func (c *Client) SecureFieldsUpdate(transactionID string, rva RequestSecureFieldsUpdate) error {
+func (c *Client) SecureFieldsUpdate(ctx context.Context, transactionID string, rva RequestSecureFieldsUpdate) error {
 	if rva.Amount == 0 || rva.Currency == "" {
 		return fmt.Errorf("neither amount nor currency nor returnURL can be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPatch, fmt.Sprintf(pathSecureFieldsUpdate, transactionID), rva)
+	req, err := c.prepareJSONReq(ctx, http.MethodPatch, fmt.Sprintf(pathSecureFieldsUpdate, transactionID), rva)
 	if err != nil {
 		return err
 	}
@@ -463,11 +464,11 @@ func (c *Client) SecureFieldsUpdate(transactionID string, rva RequestSecureField
 
 // AliasConvert converts a legacy (numeric or masked) alias to the most recent
 // alias format.
-func (c *Client) AliasConvert(legacyAlias string) (string, error) {
+func (c *Client) AliasConvert(ctx context.Context, legacyAlias string) (string, error) {
 	if legacyAlias == "" {
 		return "", fmt.Errorf("legacyAlias cannot be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodPost, pathAliases, struct {
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, pathAliases, struct {
 		LegacyAlias string `json:"legacyAlias"`
 	}{
 		LegacyAlias: legacyAlias,
@@ -486,11 +487,11 @@ func (c *Client) AliasConvert(legacyAlias string) (string, error) {
 
 // AliasDelete deletes an alias with immediate effect. The alias will no longer
 // be recognized if used later with any API call.
-func (c *Client) AliasDelete(alias string) error {
+func (c *Client) AliasDelete(ctx context.Context, alias string) error {
 	if alias == "" {
 		return fmt.Errorf("alias cannot be empty")
 	}
-	req, err := c.prepareJSONReq(http.MethodDelete, fmt.Sprintf(pathAliasesDelete, alias), nil)
+	req, err := c.prepareJSONReq(ctx, http.MethodDelete, fmt.Sprintf(pathAliasesDelete, alias), nil)
 	if err != nil {
 		return err
 	}
@@ -502,8 +503,8 @@ func (c *Client) AliasDelete(alias string) error {
 
 // ReconciliationsSales reports a sale. When using reconciliation, use this API
 // to report a sale. The matching is based on the transactionId.
-func (c *Client) ReconciliationsSales(sale RequestReconciliationsSale) (*ResponseReconciliationsSale, error) {
-	req, err := c.prepareJSONReq(http.MethodPost, pathReconciliationsSales, sale)
+func (c *Client) ReconciliationsSales(ctx context.Context, sale RequestReconciliationsSale) (*ResponseReconciliationsSale, error) {
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, pathReconciliationsSales, sale)
 	if err != nil {
 		return nil, err
 	}
@@ -517,8 +518,8 @@ func (c *Client) ReconciliationsSales(sale RequestReconciliationsSale) (*Respons
 // ReconciliationsSalesBulk reports bulk sales. When using reconciliation, use
 // this API to report multiples sales with a single API call. The matching is
 // based on the transactionId.
-func (c *Client) ReconciliationsSalesBulk(sales RequestReconciliationsSales) (*ResponseReconciliationsSales, error) {
-	req, err := c.prepareJSONReq(http.MethodPost, pathReconciliationsSalesBulk, sales)
+func (c *Client) ReconciliationsSalesBulk(ctx context.Context, sales RequestReconciliationsSales) (*ResponseReconciliationsSales, error) {
+	req, err := c.prepareJSONReq(ctx, http.MethodPost, pathReconciliationsSalesBulk, sales)
 	if err != nil {
 		return nil, err
 	}
