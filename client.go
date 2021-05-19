@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -50,6 +51,9 @@ type OptionMerchant struct {
 	DisableRawJSONBody bool
 	MerchantID         string // basic auth user
 	Password           string // basic auth pw
+	// Data contains merchant specific other IDs or configurations. Keys/Values
+	// from this map are not getting used in requests towards datatrans.
+	Data map[string]interface{}
 }
 
 func (m OptionMerchant) apply(c *Client) error {
@@ -535,4 +539,55 @@ func (c *Client) ReconciliationsSalesBulk(ctx context.Context, sales RequestReco
 		return nil, fmt.Errorf("ClientID:%q: failed to execute HTTP request: %w", c.currentInternalID, err)
 	}
 	return &rrs, nil
+}
+
+// GetDataInt returns the int value from the data map or false if not found or failed to convert.
+func (c *Client) GetDataInt(key string) (int, bool) {
+	internalID := c.currentInternalID
+	if !c.internalIDFound {
+		return 0, false
+	}
+	raw, ok := c.merchants[internalID].Data[key]
+	if !ok {
+		return 0, false
+	}
+	switch t := raw.(type) {
+	case string:
+		i, err := strconv.Atoi(t)
+		return i, err == nil
+	case int:
+		return t, true
+	case int64:
+		return int(t), true
+	}
+	return 0, false
+}
+
+// GetDataString returns the string value from the data map or false if not found or failed to convert.
+func (c *Client) GetDataString(key string) (string, bool) {
+	internalID := c.currentInternalID
+	if !c.internalIDFound {
+		return "", false
+	}
+	raw, ok := c.merchants[internalID].Data[key]
+	if !ok {
+		return "", false
+	}
+	switch t := raw.(type) {
+	case string:
+		return t, true
+	case []byte:
+		return string(t), true
+	default:
+		return fmt.Sprintf("%v", t), true
+	}
+}
+
+func (c *Client) GetDataRaw(key string) (interface{}, bool) {
+	internalID := c.currentInternalID
+	if !c.internalIDFound {
+		return nil, false
+	}
+	raw, ok := c.merchants[internalID].Data[key]
+	return raw, ok
 }

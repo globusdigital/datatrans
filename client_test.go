@@ -193,3 +193,37 @@ func TestClient_AliasDelete_Error(t *testing.T) {
 		t.Error("errors not equal")
 	}
 }
+
+func TestClient_GetData(t *testing.T) {
+	c, err := datatrans.MakeClient(
+		datatrans.OptionMerchant{
+			InternalID: "", // default
+			MerchantID: "A",
+			Data: map[string]interface{}{
+				"k1": "1",
+			},
+		},
+		datatrans.OptionMerchant{
+			InternalID: "B",
+			MerchantID: "B",
+			Data: map[string]interface{}{
+				"k2": "2",
+			},
+		},
+	)
+	must(t, err)
+	if v, ok := c.GetDataString("k1"); !ok || v != "1" {
+		t.Errorf("wrong value for k1: %#v", v)
+	}
+	if v, ok := c.GetDataInt("k1"); !ok || v != 1 {
+		t.Errorf("wrong value for k1: %#v", v)
+	}
+
+	c2 := c.WithMerchant("B")
+	if v, ok := c2.GetDataString("k2"); !ok || v != "2" {
+		t.Errorf("wrong value for k2: %#v", v)
+	}
+	if v, ok := c2.GetDataInt("k2"); !ok || v != 2 {
+		t.Errorf("wrong value for k2: %#v", v)
+	}
+}
