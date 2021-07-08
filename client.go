@@ -61,6 +61,9 @@ func (m OptionMerchant) apply(c *Client) error {
 		return fmt.Errorf("InternalID %q already exists", m.InternalID)
 	}
 	c.merchants[m.InternalID] = m
+	if _, ok := c.merchants[m.MerchantID]; !ok {
+		c.merchants[m.MerchantID] = m
+	}
 	return nil
 }
 
