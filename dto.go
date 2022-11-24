@@ -146,6 +146,7 @@ type CardAlias struct {
 
 type ResponseStatus struct {
 	TransactionID string `json:"transactionId,omitempty"`
+	MerchantID    string `json:"merchantId,omitempty"`
 	Type          string `json:"type,omitempty"`
 	Status        string `json:"status,omitempty"`
 	Currency      string `json:"currency,omitempty"`
