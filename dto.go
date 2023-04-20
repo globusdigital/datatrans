@@ -53,7 +53,7 @@ type RequestInitialize struct {
 	Card           *CardAlias        `json:"card,omitempty"`
 	Amount         int               `json:"amount,omitempty"`
 	Language       string            `json:"language,omitempty"` // Enum: "en" "de" "fr" "it" "es" "el" "no" "da" "pl" "pt" "ru" "ja"
-	PaymentMethods []string          `json:"paymentMethods,omitempty"`
+	PaymentMethods []PaymentMethod   `json:"paymentMethods,omitempty"`
 	Theme          *Theme            `json:"theme,omitempty"`
 	Redirect       *Redirect         `json:"redirect,omitempty"`
 	Option         *InitializeOption `json:"option,omitempty"`
@@ -145,13 +145,13 @@ type CardAlias struct {
 }
 
 type ResponseStatus struct {
-	TransactionID string `json:"transactionId,omitempty"`
-	MerchantID    string `json:"merchantId,omitempty"`
-	Type          string `json:"type,omitempty"`
-	Status        string `json:"status,omitempty"`
-	Currency      string `json:"currency,omitempty"`
-	RefNo         string `json:"refno,omitempty"`
-	PaymentMethod string `json:"paymentMethod,omitempty"`
+	TransactionID string        `json:"transactionId,omitempty"`
+	MerchantID    string        `json:"merchantId,omitempty"`
+	Type          string        `json:"type,omitempty"`
+	Status        Status        `json:"status,omitempty"`
+	Currency      string        `json:"currency,omitempty"`
+	RefNo         string        `json:"refno,omitempty"`
+	PaymentMethod PaymentMethod `json:"paymentMethod,omitempty"`
 	Detail        struct {
 		Init struct {
 			Expires time.Time `json:"expires,omitempty"` // Tells when the initialized transaction will expire if not continued - 30 minutes after initialization.
