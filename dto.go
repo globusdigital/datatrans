@@ -200,26 +200,26 @@ type WorkPhone struct {
 	Subscriber string `json:"subscriber,omitempty"`
 }
 type Cardholder struct {
-	AddrMatch        string      `json:"addrMatch,omitempty"`
-	BillAddrCity     string      `json:"billAddrCity,omitempty"`
-	BillAddrCountry  string      `json:"billAddrCountry,omitempty"`
-	BillAddrLine1    string      `json:"billAddrLine1,omitempty"`
-	BillAddrLine2    string      `json:"billAddrLine2,omitempty"`
-	BillAddrLine3    string      `json:"billAddrLine3,omitempty"`
-	BillAddrPostCode string      `json:"billAddrPostCode,omitempty"`
-	BillAddrState    string      `json:"billAddrState,omitempty"`
-	Email            string      `json:"email,omitempty"`
-	HomePhone        HomePhone   `json:"homePhone,omitempty"`
-	MobilePhone      MobilePhone `json:"mobilePhone,omitempty"`
-	WorkPhone        WorkPhone   `json:"workPhone,omitempty"`
-	CardholderName   string      `json:"cardholderName,omitempty"`
-	ShipAddrCity     string      `json:"shipAddrCity,omitempty"`
-	ShipAddrCountry  string      `json:"shipAddrCountry,omitempty"`
-	ShipAddrLine1    string      `json:"shipAddrLine1,omitempty"`
-	ShipAddrLine2    string      `json:"shipAddrLine2,omitempty"`
-	ShipAddrLine3    string      `json:"shipAddrLine3,omitempty"`
-	ShipAddrPostCode string      `json:"shipAddrPostCode,omitempty"`
-	ShipAddrState    string      `json:"shipAddrState,omitempty"`
+	AddrMatch        string       `json:"addrMatch,omitempty"`
+	BillAddrCity     string       `json:"billAddrCity,omitempty"`
+	BillAddrCountry  string       `json:"billAddrCountry,omitempty"`
+	BillAddrLine1    string       `json:"billAddrLine1,omitempty"`
+	BillAddrLine2    string       `json:"billAddrLine2,omitempty"`
+	BillAddrLine3    string       `json:"billAddrLine3,omitempty"`
+	BillAddrPostCode string       `json:"billAddrPostCode,omitempty"`
+	BillAddrState    string       `json:"billAddrState,omitempty"`
+	Email            string       `json:"email,omitempty"`
+	HomePhone        *HomePhone   `json:"homePhone,omitempty"`
+	MobilePhone      *MobilePhone `json:"mobilePhone,omitempty"`
+	WorkPhone        *WorkPhone   `json:"workPhone,omitempty"`
+	CardholderName   string       `json:"cardholderName,omitempty"`
+	ShipAddrCity     string       `json:"shipAddrCity,omitempty"`
+	ShipAddrCountry  string       `json:"shipAddrCountry,omitempty"`
+	ShipAddrLine1    string       `json:"shipAddrLine1,omitempty"`
+	ShipAddrLine2    string       `json:"shipAddrLine2,omitempty"`
+	ShipAddrLine3    string       `json:"shipAddrLine3,omitempty"`
+	ShipAddrPostCode string       `json:"shipAddrPostCode,omitempty"`
+	ShipAddrState    string       `json:"shipAddrState,omitempty"`
 }
 type MerchantRiskIndicator struct {
 	ShipIndicator        string `json:"shipIndicator,omitempty"`
@@ -282,24 +282,24 @@ type BrowserInformation struct {
 	ChallengeWindowSize string `json:"challengeWindowSize,omitempty"`
 }
 type ThreeD struct {
-	PreferredProtocolVersion        string              `json:"preferredProtocolVersion,omitempty"`
-	EnforcePreferredProtocolVersion bool                `json:"enforcePreferredProtocolVersion,omitempty"`
-	DeviceChannel                   string              `json:"deviceChannel,omitempty"`
-	MessageCategory                 string              `json:"messageCategory,omitempty"`
-	ThreeDSCompInd                  string              `json:"threeDSCompInd,omitempty"`
-	ThreeDSRequestor                ThreeDSRequestor    `json:"threeDSRequestor,omitempty"`
-	ThreeDSServerTransID            string              `json:"threeDSServerTransID,omitempty"`
-	CardholderAccount               CardholderAccount   `json:"cardholderAccount,omitempty"`
-	Cardholder                      Cardholder          `json:"cardholder,omitempty"`
-	RelaxRegionalValidationRules    bool                `json:"relaxRegionalValidationRules,omitempty"`
-	Purchase                        Purchase            `json:"purchase,omitempty"`
-	Acquirer                        Acquirer            `json:"acquirer,omitempty"`
-	Merchant                        Merchant            `json:"merchant,omitempty"`
-	BroadInfo                       BroadInfo           `json:"broadInfo,omitempty"`
-	DeviceRenderOptions             DeviceRenderOptions `json:"deviceRenderOptions,omitempty"`
-	MessageExtension                []MessageExtension  `json:"messageExtension,omitempty"`
-	BrowserInformation              BrowserInformation  `json:"browserInformation,omitempty"`
-	ThreeRIInd                      string              `json:"threeRIInd,omitempty"`
+	PreferredProtocolVersion        string               `json:"preferredProtocolVersion,omitempty"`
+	EnforcePreferredProtocolVersion bool                 `json:"enforcePreferredProtocolVersion,omitempty"`
+	DeviceChannel                   string               `json:"deviceChannel,omitempty"`
+	MessageCategory                 string               `json:"messageCategory,omitempty"`
+	ThreeDSCompInd                  string               `json:"threeDSCompInd,omitempty"`
+	ThreeDSRequestor                *ThreeDSRequestor    `json:"threeDSRequestor,omitempty"`
+	ThreeDSServerTransID            string               `json:"threeDSServerTransID,omitempty"`
+	CardholderAccount               *CardholderAccount   `json:"cardholderAccount,omitempty"`
+	Cardholder                      *Cardholder          `json:"cardholder,omitempty"`
+	RelaxRegionalValidationRules    bool                 `json:"relaxRegionalValidationRules,omitempty"`
+	Purchase                        *Purchase            `json:"purchase,omitempty"`
+	Acquirer                        *Acquirer            `json:"acquirer,omitempty"`
+	Merchant                        *Merchant            `json:"merchant,omitempty"`
+	BroadInfo                       *BroadInfo           `json:"broadInfo,omitempty"`
+	DeviceRenderOptions             *DeviceRenderOptions `json:"deviceRenderOptions,omitempty"`
+	MessageExtension                []MessageExtension   `json:"messageExtension,omitempty"`
+	BrowserInformation              *BrowserInformation  `json:"browserInformation,omitempty"`
+	ThreeRIInd                      string               `json:"threeRIInd,omitempty"`
 }
 
 type ResponseStatus struct {
