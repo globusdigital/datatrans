@@ -50,7 +50,7 @@ type RequestInitialize struct {
 	RefNo2         string            `json:"refno2,omitempty"`
 	AutoSettle     bool              `json:"autoSettle,omitempty"`
 	Customer       *Customer         `json:"customer,omitempty"`
-	Card           *CardAlias        `json:"card,omitempty"`
+	Card           *Card             `json:"card,omitempty"`
 	Amount         int               `json:"amount,omitempty"`
 	Language       string            `json:"language,omitempty"` // Enum: "en" "de" "fr" "it" "es" "el" "no" "da" "pl" "pt" "ru" "ja"
 	PaymentMethods []string          `json:"paymentMethods,omitempty"`
@@ -75,7 +75,7 @@ type RequestAuthorize struct {
 	AutoSettle bool   `json:"autoSettle,omitempty"`
 	// The card object to be submitted when authorizing with an existing credit
 	// card alias.
-	Card         *CardAlias `json:"card,omitempty"`
+	Card         *Card `json:"card,omitempty"`
 	CustomFields `json:"-"`
 }
 
@@ -93,10 +93,10 @@ type RequestAuthorizeTransaction struct {
 }
 
 type RequestValidateAlias struct {
-	Currency     string     `json:"currency,omitempty"`
-	RefNo        string     `json:"refno,omitempty"`
-	RefNo2       string     `json:"refno2,omitempty"`
-	Card         *CardAlias `json:"card,omitempty"`
+	Currency     string `json:"currency,omitempty"`
+	RefNo        string `json:"refno,omitempty"`
+	RefNo2       string `json:"refno2,omitempty"`
+	Card         *Card  `json:"card,omitempty"`
 	CustomFields `json:"-"`
 }
 
@@ -117,12 +117,12 @@ type RequestCredit struct {
 }
 
 type RequestCreditAuthorize struct {
-	Currency     string     `json:"currency,omitempty"`
-	RefNo        string     `json:"refno,omitempty"`
-	Card         *CardAlias `json:"card,omitempty"`
-	Amount       int        `json:"amount,omitempty"`
-	AutoSettle   bool       `json:"autoSettle,omitempty"`
-	Refno2       string     `json:"refno2,omitempty"`
+	Currency     string `json:"currency,omitempty"`
+	RefNo        string `json:"refno,omitempty"`
+	Card         *Card  `json:"card,omitempty"`
+	Amount       int    `json:"amount,omitempty"`
+	AutoSettle   bool   `json:"autoSettle,omitempty"`
+	Refno2       string `json:"refno2,omitempty"`
 	CustomFields `json:"-"`
 }
 
@@ -137,11 +137,169 @@ type CardMaskedSimple struct {
 	Masked string `json:"masked,omitempty"`
 }
 
-type CardAlias struct {
-	Alias          string `json:"alias,omitempty"`
-	ExpiryMonth    string `json:"expiryMonth,omitempty"`
-	ExpiryYear     string `json:"expiryYear,omitempty"`
-	CreateAliasCVV bool   `json:"createAliasCVV,omitempty"` // only used when initializing a transaction
+type Card struct {
+	Alias       string `json:"alias,omitempty"`
+	AliasCVV    string `json:"aliasCVV,omitempty"`
+	ExpiryMonth string `json:"expiryMonth,omitempty"`
+	ExpiryYear  string `json:"expiryYear,omitempty"`
+	ThreeD      ThreeD `json:"3D,omitempty"`
+}
+type ThreeDSRequestorAuthenticationInfo struct {
+	ThreeDSReqAuthMethod    string `json:"threeDSReqAuthMethod,omitempty"`
+	ThreeDSReqAuthTimestamp string `json:"threeDSReqAuthTimestamp,omitempty"`
+	ThreeDSReqAuthData      string `json:"threeDSReqAuthData,omitempty"`
+}
+type ThreeDSRequestorPriorAuthenticationInfo struct {
+	ThreeDSReqPriorRef           string `json:"threeDSReqPriorRef,omitempty"`
+	ThreeDSReqPriorAuthMethod    string `json:"threeDSReqPriorAuthMethod,omitempty"`
+	ThreeDSReqPriorAuthTimestamp string `json:"threeDSReqPriorAuthTimestamp,omitempty"`
+	ThreeDSReqPriorAuthData      string `json:"threeDSReqPriorAuthData,omitempty"`
+}
+type ThreeDSRequestor struct {
+	ThreeDSRequestorAuthenticationInd       string                                  `json:"threeDSRequestorAuthenticationInd,omitempty"`
+	ThreeDSRequestorAuthenticationInfo      ThreeDSRequestorAuthenticationInfo      `json:"threeDSRequestorAuthenticationInfo,omitempty"`
+	ThreeDSRequestorChallengeInd            string                                  `json:"threeDSRequestorChallengeInd,omitempty"`
+	ThreeDSRequestorPriorAuthenticationInfo ThreeDSRequestorPriorAuthenticationInfo `json:"threeDSRequestorPriorAuthenticationInfo,omitempty"`
+}
+type AcctInfo struct {
+	ChAccDate             string `json:"chAccDate,omitempty"`
+	ChAccChangeInd        string `json:"chAccChangeInd,omitempty"`
+	ChAccChange           string `json:"chAccChange,omitempty"`
+	ChAccPwChangeInd      string `json:"chAccPwChangeInd,omitempty"`
+	ChAccPwChange         string `json:"chAccPwChange,omitempty"`
+	ShipAddressUsageInd   string `json:"shipAddressUsageInd,omitempty"`
+	ShipAddressUsage      string `json:"shipAddressUsage,omitempty"`
+	TxnActivityDay        int    `json:"txnActivityDay,omitempty"`
+	TxnActivityYear       int    `json:"txnActivityYear,omitempty"`
+	ProvisionAttemptsDay  int    `json:"provisionAttemptsDay,omitempty"`
+	NbPurchaseAccount     int    `json:"nbPurchaseAccount,omitempty"`
+	SuspiciousAccActivity string `json:"suspiciousAccActivity,omitempty"`
+	ShipNameIndicator     string `json:"shipNameIndicator,omitempty"`
+	PaymentAccInd         string `json:"paymentAccInd,omitempty"`
+	PaymentAccAge         string `json:"paymentAccAge,omitempty"`
+}
+type CardholderAccount struct {
+	AcctType       string   `json:"acctType,omitempty"`
+	CardExpiryDate string   `json:"cardExpiryDate,omitempty"`
+	AcctInfo       AcctInfo `json:"acctInfo,omitempty"`
+	AcctNumber     string   `json:"acctNumber,omitempty"`
+	SchemeID       string   `json:"schemeId,omitempty"`
+	AcctID         string   `json:"acctID,omitempty"`
+	PayTokenInd    bool     `json:"payTokenInd,omitempty"`
+}
+type HomePhone struct {
+	Cc         string `json:"cc,omitempty"`
+	Subscriber string `json:"subscriber,omitempty"`
+}
+type MobilePhone struct {
+	Cc         string `json:"cc,omitempty"`
+	Subscriber string `json:"subscriber,omitempty"`
+}
+type WorkPhone struct {
+	Cc         string `json:"cc,omitempty"`
+	Subscriber string `json:"subscriber,omitempty"`
+}
+type Cardholder struct {
+	AddrMatch        string       `json:"addrMatch,omitempty"`
+	BillAddrCity     string       `json:"billAddrCity,omitempty"`
+	BillAddrCountry  string       `json:"billAddrCountry,omitempty"`
+	BillAddrLine1    string       `json:"billAddrLine1,omitempty"`
+	BillAddrLine2    string       `json:"billAddrLine2,omitempty"`
+	BillAddrLine3    string       `json:"billAddrLine3,omitempty"`
+	BillAddrPostCode string       `json:"billAddrPostCode,omitempty"`
+	BillAddrState    string       `json:"billAddrState,omitempty"`
+	Email            string       `json:"email,omitempty"`
+	HomePhone        *HomePhone   `json:"homePhone,omitempty"`
+	MobilePhone      *MobilePhone `json:"mobilePhone,omitempty"`
+	WorkPhone        *WorkPhone   `json:"workPhone,omitempty"`
+	CardholderName   string       `json:"cardholderName,omitempty"`
+	ShipAddrCity     string       `json:"shipAddrCity,omitempty"`
+	ShipAddrCountry  string       `json:"shipAddrCountry,omitempty"`
+	ShipAddrLine1    string       `json:"shipAddrLine1,omitempty"`
+	ShipAddrLine2    string       `json:"shipAddrLine2,omitempty"`
+	ShipAddrLine3    string       `json:"shipAddrLine3,omitempty"`
+	ShipAddrPostCode string       `json:"shipAddrPostCode,omitempty"`
+	ShipAddrState    string       `json:"shipAddrState,omitempty"`
+}
+type MerchantRiskIndicator struct {
+	ShipIndicator        string `json:"shipIndicator,omitempty"`
+	DeliveryTimeframe    string `json:"deliveryTimeframe,omitempty"`
+	DeliveryEmailAddress string `json:"deliveryEmailAddress,omitempty"`
+	ReorderItemsInd      string `json:"reorderItemsInd,omitempty"`
+	PreOrderPurchaseInd  string `json:"preOrderPurchaseInd,omitempty"`
+	PreOrderDate         string `json:"preOrderDate,omitempty"`
+	GiftCardAmount       int    `json:"giftCardAmount,omitempty"`
+	GiftCardCurr         string `json:"giftCardCurr,omitempty"`
+	GiftCardCount        string `json:"giftCardCount,omitempty"`
+}
+type Purchase struct {
+	PurchaseInstalData    int                   `json:"purchaseInstalData,omitempty"`
+	MerchantRiskIndicator MerchantRiskIndicator `json:"merchantRiskIndicator,omitempty"`
+	PurchaseAmount        int                   `json:"purchaseAmount,omitempty"`
+	PurchaseCurrency      string                `json:"purchaseCurrency,omitempty"`
+	PurchaseExponent      int                   `json:"purchaseExponent,omitempty"`
+	PurchaseDate          string                `json:"purchaseDate,omitempty"`
+	RecurringExpiry       string                `json:"recurringExpiry,omitempty"`
+	RecurringFrequency    int                   `json:"recurringFrequency,omitempty"`
+	TransType             string                `json:"transType,omitempty"`
+}
+type Acquirer struct {
+	AcquirerBin        string `json:"acquirerBin,omitempty"`
+	AcquirerMerchantID string `json:"acquirerMerchantId,omitempty"`
+}
+type Merchant struct {
+	Mcc                 string `json:"mcc,omitempty"`
+	MerchantCountryCode string `json:"merchantCountryCode,omitempty"`
+	MerchantName        string `json:"merchantName,omitempty"`
+}
+type BroadInfo struct {
+	Message string `json:"message,omitempty"`
+}
+type DeviceRenderOptions struct {
+	SdkInterface string   `json:"sdkInterface,omitempty"`
+	SdkUIType    []string `json:"sdkUiType,omitempty"`
+}
+type Data struct {
+	ValueOne string `json:"valueOne,omitempty"`
+	ValueTwo string `json:"valueTwo,omitempty"`
+}
+type MessageExtension struct {
+	ID                   string `json:"id,omitempty"`
+	Name                 string `json:"name,omitempty"`
+	CriticalityIndicator bool   `json:"criticalityIndicator,omitempty"`
+	Data                 Data   `json:"data,omitempty"`
+}
+type BrowserInformation struct {
+	BrowserAcceptHeader string `json:"browserAcceptHeader,omitempty"`
+	BrowserIP           string `json:"browserIP,omitempty"`
+	BrowserJavaEnabled  bool   `json:"browserJavaEnabled,omitempty"`
+	BrowserLanguage     string `json:"browserLanguage,omitempty"`
+	BrowserColorDepth   string `json:"browserColorDepth,omitempty"`
+	BrowserScreenHeight int    `json:"browserScreenHeight,omitempty"`
+	BrowserScreenWidth  int    `json:"browserScreenWidth,omitempty"`
+	BrowserTZ           int    `json:"browserTZ,omitempty"`
+	BrowserUserAgent    string `json:"browserUserAgent,omitempty"`
+	ChallengeWindowSize string `json:"challengeWindowSize,omitempty"`
+}
+type ThreeD struct {
+	PreferredProtocolVersion        string               `json:"preferredProtocolVersion,omitempty"`
+	EnforcePreferredProtocolVersion bool                 `json:"enforcePreferredProtocolVersion,omitempty"`
+	DeviceChannel                   string               `json:"deviceChannel,omitempty"`
+	MessageCategory                 string               `json:"messageCategory,omitempty"`
+	ThreeDSCompInd                  string               `json:"threeDSCompInd,omitempty"`
+	ThreeDSRequestor                *ThreeDSRequestor    `json:"threeDSRequestor,omitempty"`
+	ThreeDSServerTransID            string               `json:"threeDSServerTransID,omitempty"`
+	CardholderAccount               *CardholderAccount   `json:"cardholderAccount,omitempty"`
+	Cardholder                      *Cardholder          `json:"cardholder,omitempty"`
+	RelaxRegionalValidationRules    bool                 `json:"relaxRegionalValidationRules,omitempty"`
+	Purchase                        *Purchase            `json:"purchase,omitempty"`
+	Acquirer                        *Acquirer            `json:"acquirer,omitempty"`
+	Merchant                        *Merchant            `json:"merchant,omitempty"`
+	BroadInfo                       *BroadInfo           `json:"broadInfo,omitempty"`
+	DeviceRenderOptions             *DeviceRenderOptions `json:"deviceRenderOptions,omitempty"`
+	MessageExtension                []MessageExtension   `json:"messageExtension,omitempty"`
+	BrowserInformation              *BrowserInformation  `json:"browserInformation,omitempty"`
+	ThreeRIInd                      string               `json:"threeRIInd,omitempty"`
 }
 
 type ResponseStatus struct {
