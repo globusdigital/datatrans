@@ -47,8 +47,8 @@ How can I extend the JSON data posted to datatrans?
 		AutoSettle: true,
 		Amount:     10023,
 		Language:   "DE",
-		CustomFields: map[string]interface{}{
-			"TWI": map[string]interface{}{
+		CustomFields: map[string]any{
+			"TWI": map[string]any{
 				"alias": "ZGZhc2RmYXNkZmFzZGZhc2Q=",
 			},
 		},

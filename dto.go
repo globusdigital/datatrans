@@ -7,13 +7,13 @@ import (
 // More fields can be added to any of the structs if needed. Just send a PR.
 
 type customFieldsGetter interface {
-	getCustomFields() map[string]interface{}
+	getCustomFields() map[string]any
 }
 
 // CustomFields allows to extend any input with merchant specific settings.
-type CustomFields map[string]interface{}
+type CustomFields map[string]any
 
-func (cf CustomFields) getCustomFields() map[string]interface{} { return cf }
+func (cf CustomFields) getCustomFields() map[string]any { return cf }
 
 type rawJSONBodySetter interface {
 	setJSONRawBody([]byte)
@@ -28,6 +28,7 @@ func (b *RawJSONBody) setJSONRawBody(p []byte) {
 	*b = p
 }
 
+// RequestSecureFieldsInit
 // https://api-reference.datatrans.ch/#operation/secureFieldsInit
 type RequestSecureFieldsInit struct {
 	Currency     string `json:"currency"`
@@ -36,6 +37,7 @@ type RequestSecureFieldsInit struct {
 	CustomFields `json:"-"`
 }
 
+// RequestSecureFieldsUpdate
 // https://api-reference.datatrans.ch/#operation/secure-fields-update
 type RequestSecureFieldsUpdate struct {
 	Currency     string `json:"currency"`
@@ -43,6 +45,7 @@ type RequestSecureFieldsUpdate struct {
 	CustomFields `json:"-"`
 }
 
+// RequestInitialize
 // https://api-reference.datatrans.ch/#operation/init
 type RequestInitialize struct {
 	Currency       string            `json:"currency"`
@@ -64,6 +67,19 @@ type ResponseInitialize struct {
 	Location      string `json:"location,omitempty"` // A URL where the users browser needs to be redirect to complete the payment. This redirect is only needed when using Redirect Mode. For Lightbox Mode the returned transactionId can be used to start the payment page.
 	TransactionId string `json:"transactionId,omitempty"`
 	MobileToken   string `json:"mobileToken,omitempty"`
+	RawJSONBody   `json:"raw,omitempty"`
+}
+
+type RequestScreen struct {
+	Amount       int       `json:"amount,omitempty"`
+	Currency     string    `json:"currency"`
+	RefNo        string    `json:"refno"`
+	Customer     *Customer `json:"customer,omitempty"`
+	CustomFields `json:"-"`
+}
+
+type ResponseScreen struct {
+	TransactionId string `json:"transactionId,omitempty"`
 	RawJSONBody   `json:"raw,omitempty"`
 }
 

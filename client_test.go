@@ -112,7 +112,7 @@ func TestClient_Initialize(t *testing.T) {
 			CancelUrl:  "https://.../cancelPage.jsp",
 			ErrorUrl:   "https://.../errorPage.jsp",
 		},
-		CustomFields: map[string]interface{}{
+		CustomFields: map[string]any{
 			"alp": true,
 		},
 	}
@@ -146,8 +146,8 @@ func TestMarshalJSON(t *testing.T) {
 		AutoSettle: true,
 		Amount:     123,
 		Language:   "DE",
-		CustomFields: map[string]interface{}{
-			"twi": map[string]interface{}{
+		CustomFields: map[string]any{
+			"twi": map[string]any{
 				"alias": "ZGZhc2RmYXNkZmFzZGZhc2Q=",
 			},
 		},
@@ -199,14 +199,14 @@ func TestClient_GetData(t *testing.T) {
 		datatrans.OptionMerchant{
 			InternalID: "", // default
 			MerchantID: "A",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"k1": "1",
 			},
 		},
 		datatrans.OptionMerchant{
 			InternalID: "B",
 			MerchantID: "B",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"k2": "2",
 			},
 		},
