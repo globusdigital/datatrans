@@ -383,27 +383,44 @@ type History struct {
 }
 
 type Customer struct {
-	ID                    string `json:"id,omitempty"`                    // Unique customer identifier
-	Title                 string `json:"title,omitempty"`                 // Something like Ms or Mrs
-	FirstName             string `json:"firstName,omitempty"`             // The first name of the customer.
-	LastName              string `json:"lastName,omitempty"`              // The last name of the customer.
-	Street                string `json:"street,omitempty"`                // The street of the customer.
-	Street2               string `json:"street2,omitempty"`               // Additional street information. For example: '3rd floor'
-	City                  string `json:"city,omitempty"`                  // The city of the customer.
-	Country               string `json:"country,omitempty"`               // 2 letter ISO 3166-1 alpha-2 country code
-	ZipCode               string `json:"zipCode,omitempty"`               // Zip code of the customer.
-	Phone                 string `json:"phone,omitempty"`                 // Phone number of the customer.
-	CellPhone             string `json:"cellPhone,omitempty"`             // Cell Phone number of the customer.
-	Email                 string `json:"email,omitempty"`                 // The email address of the customer.
-	Gender                string `json:"gender,omitempty"`                // Gender of the customer. female or male.
-	BirthDate             string `json:"birthDate,omitempty"`             // The birth date of the customer. Must be in ISO-8601 format (YYYY-MM-DD).
-	Language              string `json:"language,omitempty"`              // The language of the customer.
-	Type                  string `json:"type,omitempty"`                  // P or C depending on whether the customer is private or a company. If C, the fields name and companyRegisterNumber are required
-	Name                  string `json:"name,omitempty"`                  // The name of the company. Only applicable if type=C
-	CompanyLegalForm      string `json:"companyLegalForm,omitempty"`      // The legal form of the company (AG, GmbH, ...)
-	CompanyRegisterNumber string `json:"companyRegisterNumber,omitempty"` // The register number of the company. Only applicable if type=C
-	IpAddress             string `json:"ipAddress,omitempty"`             // The ip address of the customer.
+	ID                    string       `json:"id,omitempty"`                    // Unique customer identifier
+	Title                 string       `json:"title,omitempty"`                 // Something like Ms or Mrs
+	FirstName             string       `json:"firstName,omitempty"`             // The first name of the customer.
+	LastName              string       `json:"lastName,omitempty"`              // The last name of the customer.
+	Street                string       `json:"street,omitempty"`                // The street of the customer.
+	Street2               string       `json:"street2,omitempty"`               // Additional street information. For example: '3rd floor'
+	City                  string       `json:"city,omitempty"`                  // The city of the customer.
+	Country               string       `json:"country,omitempty"`               // 2 letter ISO 3166-1 alpha-2 country code
+	ZipCode               string       `json:"zipCode,omitempty"`               // Zip code of the customer.
+	Phone                 string       `json:"phone,omitempty"`                 // Phone number of the customer.
+	CellPhone             string       `json:"cellPhone,omitempty"`             // Cell Phone number of the customer.
+	Email                 string       `json:"email,omitempty"`                 // The email address of the customer.
+	Gender                string       `json:"gender,omitempty"`                // Gender of the customer. female or male.
+	BirthDate             string       `json:"birthDate,omitempty"`             // The birth date of the customer. Must be in ISO-8601 format (YYYY-MM-DD).
+	Language              string       `json:"language,omitempty"`              // The language of the customer.
+	Type                  CustomerType `json:"type,omitempty"`                  // P or C depending on whether the customer is private or a company. If C, the fields name and companyRegisterNumber are required
+	Name                  string       `json:"name,omitempty"`                  // The name of the company. Only applicable if type=C
+	CompanyLegalForm      string       `json:"companyLegalForm,omitempty"`      // The legal form of the company (AG, GmbH, ...)
+	CompanyRegisterNumber string       `json:"companyRegisterNumber,omitempty"` // The register number of the company. Only applicable if type=C
+	IpAddress             string       `json:"ipAddress,omitempty"`             // The ip address of the customer.
 }
+
+func (c *Customer) SetType() {
+	if c == nil {
+		return
+	}
+	c.Type = CustomerTypePrivate
+	if c.Name != "" || c.CompanyRegisterNumber != "" || c.CompanyLegalForm != "" {
+		c.Type = CustomerTypeCompany
+	}
+}
+
+type CustomerType string
+
+const (
+	CustomerTypePrivate CustomerType = "P"
+	CustomerTypeCompany CustomerType = "C"
+)
 
 type Theme struct {
 	// 	Theme configuration options when using the default DT2015 theme
