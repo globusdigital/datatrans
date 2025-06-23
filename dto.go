@@ -351,7 +351,7 @@ type ResponseStatus struct {
 	Customer    *Customer     `json:"customer,omitempty"`
 	Card        *CardExtended `json:"card,omitempty"`
 	Language    string        `json:"language,omitempty"`
-	History     []History     `json:"history,omitempty"`
+	History     Histories     `json:"history,omitempty"`
 	RawJSONBody `json:"raw,omitempty"`
 }
 
@@ -380,6 +380,21 @@ type History struct {
 	Date    time.Time `json:"date,omitempty"`
 	Success bool      `json:"success,omitempty"`
 	IP      string    `json:"ip,omitempty"`
+}
+
+type Histories []*History
+
+func (hs Histories) LastEntryIsOneOf(actions ...string) bool {
+	if len(hs) == 0 {
+		return false
+	}
+	lastAction := hs[len(hs)-1].Action
+	for _, action := range actions {
+		if lastAction == action {
+			return true
+		}
+	}
+	return false
 }
 
 type Customer struct {
